@@ -31,6 +31,8 @@ class BlockChain {
             newBlock.previousBlockHash = lastBlock.hash;
         }
 
+        newBlock.height = this.chain.length;
+        newBlock.time = new Date().getTime().toString().slice(0, -3);
         newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
         this.chain.push(newBlock);
     }
