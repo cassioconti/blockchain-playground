@@ -1,3 +1,12 @@
+# How to run
+
+`node simpleChain.js`
+
+Please check the end of the `simpleChain.js` file to see how data is being added.
+Due to the async properties of level DB, I am adding 100 ms between the calls.
+
+The final code is a little too complex. I hope the reviewer can send me some suggestions.
+
 # Blockchain Data
 
 Blockchain has the potential to change the way that the world approaches data. Develop Blockchain skills by understanding the data model behind Blockchain by developing your own simplified private blockchain.
