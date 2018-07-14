@@ -26,135 +26,170 @@ class Block {
 |  ================================================*/
 
 class Blockchain {
-  constructor() {
-    this.addBlock(new Block("First block in the chain - Genesis block"), true);
-  }
 
-  // Add new block
-  addBlock(newBlock, canSkip) {
-    let i = 0;
-    db.createReadStream().on('data', function (data) {
-      i++;
-    }).on('error', function (err) {
-      return console.log('Unable to read data stream!', err)
-    }).on('close', () => {
-      if (canSkip && i > 0) {
-        return;
-      }
-
-      console.log('Block #' + i);
-      // Block height
-      newBlock.height = i;
-      // UTC timestamp
-      newBlock.time = new Date().getTime().toString().slice(0, -3);
-      // previous block hash
-      let promise;
-      if (i > 0) {
-        promise = this.getBlock(i - 1)
-          .then(prevBlock => {
-            newBlock.previousBlockHash = prevBlock.hash
-          });
-      }
-
-      Promise.all([promise]).then(() => {
-        // Block hash with SHA256 using newBlock and converting to a string
-        newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-        // Adding block object to chain
-        console.log(newBlock);
-        db.put(i, JSON.stringify(newBlock), function (err) {
-          if (err) return console.log('Block ' + i + ' submission failed', err);
+  // Get a static instance of the Blockchain class as a promise
+  static getInstance() {
+    if (!Blockchain.instance) {
+      Blockchain.instance = new Blockchain();
+      return Blockchain.instance.getBlockHeight()
+        .then(height => {
+          if (height === 0) {
+            return Blockchain.instance.addBlock(new Block("First block in the chain - Genesis block"));
+          }
         })
-        this.height = i + 1;
-      });
-    });
+        .then(() => Blockchain.instance);
+    } else {
+      return Promise.resolve(Blockchain.instance);
+    }
   }
 
-  // Get block height
+  // Add the new block and return a promise to the blockchain instance
+  addBlock(newBlock) {
+    return this.getBlockHeight()
+      .then(height => {
+        newBlock.height = height;
+        newBlock.time = new Date().getTime().toString().slice(0, -3);
+        var promisePrevBlock;
+        if (height > 0) {
+          promisePrevBlock = this.getBlock(height - 1)
+            .then(prevBlock => {
+              newBlock.previousBlockHash = prevBlock.hash;
+            });
+        }
+
+        return Promise.all([promisePrevBlock])
+          .then(() => {
+            newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+            return db.put(height, JSON.stringify(newBlock));
+          });
+      })
+      .then(() => Blockchain.instance);
+  }
+
+  // Get a promise to the block height
   getBlockHeight() {
-    return this.height;
+    var recursiveFunc = function (key) {
+      return db.get(key)
+        .then(() => recursiveFunc(key + 1))
+        .catch(() => key);
+    }
+
+    return recursiveFunc(0);
   }
 
-  // get block
+  // Get a promise to the requested block
   getBlock(blockHeight) {
     // return object as a single string
     return db.get(blockHeight)
       .then(value => JSON.parse(value));
   }
 
-  // validate block
-  validateBlock(blockHeight) {
-    // get block object
-    return this.getBlock(blockHeight).then(block => {
-      // get block hash
-      let blockHash = block.hash;
-      // remove block hash to test block integrity
-      block.hash = '';
-      // generate block hash
-      let validBlockHash = SHA256(JSON.stringify(block)).toString();
-      // Compare
-      if (blockHash === validBlockHash) {
-        console.log('Block #' + blockHeight + ' is valid\n');
-        return true;
-      } else {
-        console.log('Block #' + blockHeight + ' invalid hash:\n' + blockHash + '<>' + validBlockHash);
-        return false;
-      }
-    });
-  }
-
-  // Validate blockchain
-  validateChain() {
-    let errorLog = [];
-    let promises = [];
-    for (var i = 0; i < this.getBlockHeight() - 1; i++) {
-      // validate block
-      promises.push(this.validateChainCore(i, errorLog));
+  // Print all the blocks in the chain and return a promise to the blockchain instance
+  printAll() {
+    var recursiveFunc = function (key) {
+      return db.get(key)
+        .then(block => {
+          console.log(key, block);
+          return recursiveFunc(key + 1);
+        })
+        .catch(() => console.log(`... total number of blocks: ${key}. Done!`));
     }
 
-    Promise.all(promises).then(() => {
-      if (errorLog.length > 0) {
-        console.log('Block errors = ' + errorLog.length);
-        console.log('Blocks: ' + errorLog);
-      } else {
-        console.log('No errors detected');
-      }
-    });
+    console.log('Printing all blocks...')
+    return recursiveFunc(0)
+      .then(() => Blockchain.instance);
   }
 
-  validateChainCore(i, errorLog) {
-    return this.validateBlock(i).then(isValid => {
-      if (!isValid) errorLog.push(i);
-      // compare blocks hash link
-      return this.getBlock(i).then(block => {
+  // Returns a Promise to a boolean indicating if the block is valid
+  validateBlock(blockHeight) {
+    // get block object
+    return this.getBlock(blockHeight)
+      .then(block => {
+        // get block hash
         let blockHash = block.hash;
-        return this.getBlock(i + 1).then(nextBlock => {
-          let previousHash = nextBlock.previousBlockHash;
-          if (blockHash !== previousHash) {
-            errorLog.push(i);
-          }
-        });
+        // remove block hash to test block integrity
+        block.hash = '';
+        // generate block hash
+        let validBlockHash = SHA256(JSON.stringify(block)).toString();
+        // Compare
+        if (blockHash === validBlockHash) {
+          console.log('Block #' + blockHeight + ' is valid');
+          return true;
+        } else {
+          console.log('Block #' + blockHeight + ' invalid hash:\n' + blockHash + '<>' + validBlockHash);
+          return false;
+        }
       });
-    })
+  }
+
+  // Validate the whole blockchain and returns a promise to the blockchain instance
+  validateChain() {
+    let errorLog = [];
+    return this.getBlockHeight()
+      .then(height => {
+        let promises = [];
+        for (var i = 0; i < height - 1; i++) {
+          // validate block
+          promises.push(this.validateChainCore(i, errorLog));
+        }
+
+        // validate last block
+        promises.push(this.validateBlock(height - 1, errorLog));
+
+        return Promise.all(promises);
+      })
+      .then(() => {
+        if (errorLog.length > 0) {
+          console.log('Block errors = ' + errorLog.length);
+          console.log('Blocks: ' + errorLog);
+          return false;
+        }
+
+        console.log('No errors detected');
+        return true;
+      })
+      .then(() => Blockchain.instance);
+  }
+
+  // Validate the link between a block and the next
+  validateChainCore(i, errorLog) {
+    return this.validateBlock(i)
+      .then(isValid => {
+        if (!isValid) {
+          errorLog.push(i);
+        } else {
+          // compare blocks hash link
+          return this.getBlock(i)
+            .then(block => {
+              let blockHash = block.hash;
+              return this.getBlock(i + 1)
+                .then(nextBlock => {
+                  let previousHash = nextBlock.previousBlockHash;
+                  if (blockHash !== previousHash) {
+                    errorLog.push(i);
+                  }
+                });
+            });
+        }
+      })
   }
 }
 
-// Due to its async properties, I run each command with a 100 ms interval between
-function loop(i) {
-  if (!i) {
-    // Last run before it stops
-    //setTimeout(() => console.log(blockchain), 100);
-    //setTimeout(() => blockchain.validateBlock(2), 100);
-    setTimeout(() => blockchain.validateChain(), 100);
-    return;
+// Method used to generate multiple blocks
+var generateBlocks = function (instance, n) {
+  if (n <= 0) {
+    return instance;
   }
 
-  setTimeout(() => {
-    const block = new Block("Some data");
-    blockchain.addBlock(block);
-    loop(i - 1);
-  }, 100);
+  return instance.addBlock(new Block("Some data"))
+    .then(() => generateBlocks(instance, n - 1));
 }
 
-// Run (add) 3 times
-blockchain = new Blockchain()
-loop(3);
+Blockchain.getInstance()
+  // Uncomment the following line as an example to add blocks to the chain.
+  // .then(blockchain => generateBlocks(blockchain, 5))
+
+  .then(blockchain => blockchain.validateChain())
+
+// Uncomment the following line to print all the block in the chain.
+// .then(blockchain => blockchain.printAll())

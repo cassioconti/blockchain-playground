@@ -1,11 +1,9 @@
 # How to run
 
-`node simpleChain.js`
+Install the dependencies with `npm install`
+Run with `npm start`
 
-Please check the end of the `simpleChain.js` file to see how data is being added.
-Due to the async properties of level DB, I am adding 100 ms between the calls.
-
-The final code is a little too complex. I hope the reviewer can send me some suggestions.
+Please check the end of the `simpleChain.js` file to see how data can be added.
 
 # Blockchain Data
 

@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "main": "simpleChain.js",
   "license": "MIT",
+  "scripts": {
+    "start": "node simpleChain.js"
+  },
   "dependencies": {
     "crypto-js": "^3.1.9-1",
     "level": "^4.0.0"
