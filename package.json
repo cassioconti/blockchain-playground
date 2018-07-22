@@ -4,10 +4,14 @@
   "main": "simpleChain.js",
   "license": "MIT",
   "scripts": {
-    "start": "node simpleChain.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "crypto-js": "^3.1.9-1",
+    "express": "^4.16.3",
     "level": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.2.0"
   }
 }
