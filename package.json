@@ -4,7 +4,8 @@
   "main": "simpleChain.js",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "validate": "node simpleChain.js"
   },
   "dependencies": {
     "body-parser": "^1.18.3",

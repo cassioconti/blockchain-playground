@@ -9,7 +9,6 @@ const db = level(chainDB);
 |  Class with a constructor for new blockchain 		|
 |  ================================================*/
 
-
 class Blockchain {
 
     // Get a static instance of the Blockchain class as a promise
