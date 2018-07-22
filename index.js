@@ -4,7 +4,7 @@ const RequestHandler = require('./request-handler');
 
 const requestHandler = new RequestHandler();
 
-app.get('/', requestHandler.getBlock);
+app.get('/block/:height', requestHandler.getBlock);
 app.post('/', requestHandler.postBlock);
 
 const port = 8000;
