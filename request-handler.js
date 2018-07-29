@@ -41,6 +41,26 @@ class RequestHandler {
             });
         }
     }
+
+    postValidateSignature(req, res) {
+        if (req.body.address && req.body.signature) {
+            StarRegisterValidation.getInstance()
+                .validateSignature(req.body.address, req.body.signature)
+                .then(response => res.json(response))
+                .catch(err => {
+                    console.log(err); // TODO: Remove when project is complete
+                    res.status(400).json({
+                        reason: 'Bad request.',
+                        details: `Validation process for ${req.body.address} was not started.`
+                    });
+                });
+        } else {
+            res.status(400).json({
+                reason: 'Bad request.',
+                details: 'Expected json containing "address" and "signature" attributes.'
+            });
+        }
+    }
 }
 
 module.exports = RequestHandler;
