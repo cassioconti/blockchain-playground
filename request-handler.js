@@ -1,5 +1,6 @@
 const Blockchain = require('./blockchain');
 const Block = require('./block');
+const StarRegisterValidation = require('./star-register-validation');
 
 class RequestHandler {
     getBlock(req, res) {
@@ -26,6 +27,19 @@ class RequestHandler {
             .then(instance => instance.getBlock(height))
             .then(block => res.json(block))
             .catch(err => res.send(err));
+    }
+
+    postRequestValidation(req, res) {
+        if (req.body.address) {
+            StarRegisterValidation.getInstance()
+                .requestValidation(req.body.address)
+                .then(response => res.json(response));
+        } else {
+            res.status(400).json({
+                reason: 'Bad request.',
+                details: 'Expected json containing "address" attribute.'
+            });
+        }
     }
 }
 
