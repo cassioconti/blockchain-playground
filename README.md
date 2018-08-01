@@ -6,6 +6,8 @@ Install the dependencies with `npm install`
 
 Run the web server with `npm start`
 
+This project uses Express.js as the framework to serve the application.
+
 ## Interact
 
 1. Get a block from the chain `GET localhost:8000/block/<height>`
