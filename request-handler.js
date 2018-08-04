@@ -1,6 +1,7 @@
 const Blockchain = require('./blockchain');
 const Block = require('./block');
 const StarRegisterValidation = require('./star-register-validation');
+const Utils = require('./utils');
 
 class RequestHandler {
     getBlock(req, res) {
@@ -21,17 +22,11 @@ class RequestHandler {
                             .then(instance => instance.getBlockHeight())
                             .then(height => this.getBlockCore(height - 1, res));
                     } else {
-                        res.status(400).json({
-                            reason: 'Bad request.',
-                            details: 'You do not have a validated request or it expired'
-                        });
+                        Utils.badRequest(res, 'You do not have a validated request or it expired');
                     }
                 });
         } else {
-            res.status(400).json({
-                reason: 'Bad request.',
-                details: 'Expected json containing "address" and "star" attributes.'
-            });
+            Utils.badRequest(res, 'Expected json containing "address" and "star" attributes.');
         }
     }
 
@@ -44,43 +39,28 @@ class RequestHandler {
                 }
                 res.json(block);
             })
-            .catch(() => res.status(400).json({
-                reason: 'Bad request.',
-                details: 'Block not found.'
-            }));
+            .catch(() => Utils.badRequest(res, 'Block not found.'));
     }
+}
 
-    postRequestValidation(req, res) {
-        if (req.body.address) {
-            StarRegisterValidation.getInstance()
-                .requestValidation(req.body.address)
-                .then(response => res.json(response));
-        } else {
-            res.status(400).json({
-                reason: 'Bad request.',
-                details: 'Expected json containing "address" attribute.'
-            });
-        }
+postRequestValidation(req, res) {
+    if (req.body.address) {
+        StarRegisterValidation.getInstance()
+            .requestValidation(req.body.address)
+            .then(response => res.json(response));
+    } else {
+        Utils.badRequest(res, 'Expected json containing "address" attribute.');
     }
+}
 
-    postValidateSignature(req, res) {
-        if (req.body.address && req.body.signature) {
-            StarRegisterValidation.getInstance()
-                .validateSignature(req.body.address, req.body.signature)
-                .then(response => res.json(response))
-                .catch(err => {
-                    console.log(err); // TODO: Remove when project is complete
-                    res.status(400).json({
-                        reason: 'Bad request.',
-                        details: `Validation process for ${req.body.address} was not started.`
-                    });
-                });
-        } else {
-            res.status(400).json({
-                reason: 'Bad request.',
-                details: 'Expected json containing "address" and "signature" attributes.'
-            });
-        }
+postValidateSignature(req, res) {
+    if (req.body.address && req.body.signature) {
+        StarRegisterValidation.getInstance()
+            .validateSignature(req.body.address, req.body.signature)
+            .then(response => res.json(response))
+            .catch(err => Utils.badRequest(res, `Validation process for ${req.body.address} was not started.`));
+    } else {
+        Utils.badRequest(res, 'Expected json containing "address" and "signature" attributes.');
     }
 }
 
