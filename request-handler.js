@@ -38,8 +38,16 @@ class RequestHandler {
     getBlockCore(height, res) {
         Blockchain.getInstance()
             .then(instance => instance.getBlock(height))
-            .then(block => res.json(block))
-            .catch(err => res.send(err));
+            .then(block => {
+                if (block.body.star && block.body.star.story) {
+                    block.body.star.storyDecoded = new Buffer(block.body.star.story, 'hex').toString();
+                }
+                res.json(block);
+            })
+            .catch(() => res.status(400).json({
+                reason: 'Bad request.',
+                details: 'Block not found.'
+            }));
     }
 
     postRequestValidation(req, res) {
