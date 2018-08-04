@@ -8,6 +8,11 @@ class RequestHandler {
         this.getBlockCore(req.params.height, res);
     }
 
+    getBlockHash(req, res) {
+        this.getHashHeight(req.params.hash)
+            .then(height => this.getBlockCore(height, res));
+    }
+
     postBlock(req, res) {
         if (req.body.address && req.body.star) {
             StarRegisterValidation.getInstance()
@@ -41,26 +46,43 @@ class RequestHandler {
             })
             .catch(() => Utils.badRequest(res, 'Block not found.'));
     }
-}
 
-postRequestValidation(req, res) {
-    if (req.body.address) {
-        StarRegisterValidation.getInstance()
-            .requestValidation(req.body.address)
-            .then(response => res.json(response));
-    } else {
-        Utils.badRequest(res, 'Expected json containing "address" attribute.');
+    getHashHeight(hash) {
+        var recursiveFunc = function (key) {
+            return Blockchain.getInstance()
+                .then(instance => instance.getBlock(key))
+                .then(block => {
+                    if (block.hash === hash) {
+                        return key;
+                    }
+
+                    return recursiveFunc(key + 1);
+                })
+                .catch(() => -1);
+        };
+
+        return recursiveFunc(0);
     }
-}
 
-postValidateSignature(req, res) {
-    if (req.body.address && req.body.signature) {
-        StarRegisterValidation.getInstance()
-            .validateSignature(req.body.address, req.body.signature)
-            .then(response => res.json(response))
-            .catch(err => Utils.badRequest(res, `Validation process for ${req.body.address} was not started.`));
-    } else {
-        Utils.badRequest(res, 'Expected json containing "address" and "signature" attributes.');
+    postRequestValidation(req, res) {
+        if (req.body.address) {
+            StarRegisterValidation.getInstance()
+                .requestValidation(req.body.address)
+                .then(response => res.json(response));
+        } else {
+            Utils.badRequest(res, 'Expected json containing "address" attribute.');
+        }
+    }
+
+    postValidateSignature(req, res) {
+        if (req.body.address && req.body.signature) {
+            StarRegisterValidation.getInstance()
+                .validateSignature(req.body.address, req.body.signature)
+                .then(response => res.json(response))
+                .catch(() => Utils.badRequest(res, `Validation process for ${req.body.address} was not started.`));
+        } else {
+            Utils.badRequest(res, 'Expected json containing "address" and "signature" attributes.');
+        }
     }
 }
 
