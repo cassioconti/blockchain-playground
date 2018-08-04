@@ -5,6 +5,14 @@ class Utils {
             details
         });
     }
+
+    static createDecodeStory(block) {
+        if (block.body.star && block.body.star.story) {
+            block.body.star.storyDecoded = new Buffer(block.body.star.story, 'hex').toString();
+        }
+
+        return block;
+    }
 }
 
 module.exports = Utils;

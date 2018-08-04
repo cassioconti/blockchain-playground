@@ -9,8 +9,14 @@ class RequestHandler {
     }
 
     getBlockHash(req, res) {
-        this.getHashHeight(req.params.hash)
-            .then(height => this.getBlockCore(height, res));
+        this.getBlockByHash(req.params.hash)
+            .then(block => block ? block : this.getBlockCore(-1, res))
+            .then(block => res.json(block));
+    }
+
+    getBlockAddress(req, res) {
+        this.getBlocksByAddress(req.params.address)
+            .then(blocks => res.json(blocks));
     }
 
     postBlock(req, res) {
@@ -39,26 +45,43 @@ class RequestHandler {
         Blockchain.getInstance()
             .then(instance => instance.getBlock(height))
             .then(block => {
-                if (block.body.star && block.body.star.story) {
-                    block.body.star.storyDecoded = new Buffer(block.body.star.story, 'hex').toString();
-                }
+                block = Utils.createDecodeStory(block);
                 res.json(block);
             })
             .catch(() => Utils.badRequest(res, 'Block not found.'));
     }
 
-    getHashHeight(hash) {
+    getBlockByHash(hash) {
         var recursiveFunc = function (key) {
             return Blockchain.getInstance()
                 .then(instance => instance.getBlock(key))
                 .then(block => {
                     if (block.hash === hash) {
-                        return key;
+                        return Utils.createDecodeStory(block);
                     }
 
                     return recursiveFunc(key + 1);
                 })
-                .catch(() => -1);
+                .catch(() => undefined);
+        };
+
+        return recursiveFunc(0);
+    }
+
+    getBlocksByAddress(address) {
+        const blocks = [];
+        var recursiveFunc = function (key) {
+            return Blockchain.getInstance()
+                .then(instance => instance.getBlock(key))
+                .then(block => {
+                    if (block.body.address === address) {
+                        block = Utils.createDecodeStory(block);
+                        blocks.push(block);
+                    }
+
+                    return recursiveFunc(key + 1);
+                })
+                .catch(() => blocks);
         };
 
         return recursiveFunc(0);
