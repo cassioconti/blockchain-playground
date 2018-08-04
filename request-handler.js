@@ -8,16 +8,29 @@ class RequestHandler {
     }
 
     postBlock(req, res) {
-        if (req.body.data) {
-            const newBlock = new Block(req.body.data);
-            Blockchain.getInstance()
-                .then(instance => instance.addBlock(newBlock))
-                .then(instance => instance.getBlockHeight())
-                .then(height => this.getBlockCore(height - 1, res));
+        if (req.body.address && req.body.star) {
+            StarRegisterValidation.getInstance()
+                .isAuthorized(req.body.address)
+                .then(isAuthorized => {
+                    if (isAuthorized) {
+                        const newBlock = new Block(req.body);
+                        const truncatedStory = newBlock.body.star.story.substring(0, 500);
+                        newBlock.body.star.story = new Buffer(truncatedStory).toString('hex');
+                        Blockchain.getInstance()
+                            .then(instance => instance.addBlock(newBlock))
+                            .then(instance => instance.getBlockHeight())
+                            .then(height => this.getBlockCore(height - 1, res));
+                    } else {
+                        res.status(400).json({
+                            reason: 'Bad request.',
+                            details: 'You do not have a validated request or it expired'
+                        });
+                    }
+                });
         } else {
             res.status(400).json({
                 reason: 'Bad request.',
-                details: 'Expected json containing "data" attribute.'
+                details: 'Expected json containing "address" and "star" attributes.'
             });
         }
     }

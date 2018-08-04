@@ -53,6 +53,17 @@ class StarRegisterValidation {
             });
     }
 
+    isAuthorized(walletAddress) {
+        return db.get(walletAddress)
+            .then(dbValueString => {
+                const dbValue = JSON.parse(dbValueString);
+                const fiveMinutesInThePast = Date.now() - (5 * 60 * 1000);
+                const isExpired = dbValue.requestTimeStamp < fiveMinutesInThePast;
+                const isSignatureValidated = dbValue.messageSignature === 'valid';
+                return !isExpired && isSignatureValidated;
+            });
+    }
+
     printAll() {
         db.createReadStream()
             .on('data', function (data) {
