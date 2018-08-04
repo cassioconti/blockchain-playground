@@ -1,13 +1,8 @@
 {
   "name": "blockchain",
   "version": "0.0.1",
-  "main": "simpleChain.js",
+  "main": "index.js",
   "license": "MIT",
-  "scripts": {
-    "start": "node index.js",
-    "validate": "node blockchain-test.js",
-    "nodemon": "nodemon index.js"
-  },
   "dependencies": {
     "bitcoinjs-message": "^2.0.0",
     "body-parser": "^1.18.3",
@@ -18,5 +13,10 @@
   "devDependencies": {
     "eslint": "^5.2.0",
     "nodemon": "^1.18.3"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "validate": "node blockchain-test.js",
+    "nodemon": "nodemon index.js"
   }
 }

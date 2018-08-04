@@ -1,21 +1,25 @@
 const Blockchain = require('./blockchain');
 const Block = require('./block');
 const StarRegisterValidation = require('./star-register-validation');
+const StarChainHandler = require('./star-chain-handler');
 const Utils = require('./utils');
 
 class RequestHandler {
+    constructor() {
+        this.starChainHandler = new StarChainHandler();
+    }
+
     getBlock(req, res) {
         this.getBlockCore(req.params.height, res);
     }
 
     getBlockHash(req, res) {
-        this.getBlockByHash(req.params.hash)
-            .then(block => block ? block : this.getBlockCore(-1, res))
-            .then(block => res.json(block));
+        this.starChainHandler.getBlockByHash(req.params.hash)
+            .then(block => block ? res.json(block) : this.getBlockCore(-1, res));
     }
 
     getBlockAddress(req, res) {
-        this.getBlocksByAddress(req.params.address)
+        this.starChainHandler.getBlocksByAddress(req.params.address)
             .then(blocks => res.json(blocks));
     }
 
@@ -42,49 +46,9 @@ class RequestHandler {
     }
 
     getBlockCore(height, res) {
-        Blockchain.getInstance()
-            .then(instance => instance.getBlock(height))
-            .then(block => {
-                block = Utils.createDecodeStory(block);
-                res.json(block);
-            })
+        this.starChainHandler.getBlockByHeight(height)
+            .then(block => res.json(block))
             .catch(() => Utils.badRequest(res, 'Block not found.'));
-    }
-
-    getBlockByHash(hash) {
-        var recursiveFunc = function (key) {
-            return Blockchain.getInstance()
-                .then(instance => instance.getBlock(key))
-                .then(block => {
-                    if (block.hash === hash) {
-                        return Utils.createDecodeStory(block);
-                    }
-
-                    return recursiveFunc(key + 1);
-                })
-                .catch(() => undefined);
-        };
-
-        return recursiveFunc(0);
-    }
-
-    getBlocksByAddress(address) {
-        const blocks = [];
-        var recursiveFunc = function (key) {
-            return Blockchain.getInstance()
-                .then(instance => instance.getBlock(key))
-                .then(block => {
-                    if (block.body.address === address) {
-                        block = Utils.createDecodeStory(block);
-                        blocks.push(block);
-                    }
-
-                    return recursiveFunc(key + 1);
-                })
-                .catch(() => blocks);
-        };
-
-        return recursiveFunc(0);
     }
 
     postRequestValidation(req, res) {
