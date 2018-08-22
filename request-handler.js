@@ -36,6 +36,8 @@ class RequestHandler {
                             .then(instance => instance.addBlock(newBlock))
                             .then(instance => instance.getBlockHeight())
                             .then(height => this.getBlockCore(height - 1, res));
+
+                        StarRegisterValidation.getInstance().markAsUsed(req.body.address);
                     } else {
                         Utils.badRequest(res, 'You do not have a validated request or it expired');
                     }

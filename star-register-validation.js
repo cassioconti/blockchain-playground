@@ -53,6 +53,15 @@ class StarRegisterValidation {
             });
     }
 
+    markAsUsed(walletAddress) {
+        return db.get(walletAddress)
+            .then(dbValueString => {
+                const dbValue = JSON.parse(dbValueString);
+                dbValue.messageSignature = "used";
+                db.put(walletAddress, JSON.stringify(dbValue));
+            });
+    }
+
     isAuthorized(walletAddress) {
         return db.get(walletAddress)
             .then(dbValueString => {
