@@ -35,7 +35,11 @@ class RequestHandler {
                         Blockchain.getInstance()
                             .then(instance => instance.addBlock(newBlock))
                             .then(instance => instance.getBlockHeight())
-                            .then(height => this.getBlockCore(height - 1, res));
+                            .then(height => this.starChainHandler.getBlockByHeight(height - 1))
+                            .then(block => {
+                                delete block.body.star.storyDecoded;
+                                res.json(block);
+                            });
 
                         StarRegisterValidation.getInstance().markAsUsed(req.body.address);
                     } else {
