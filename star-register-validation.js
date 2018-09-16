@@ -13,16 +13,29 @@ class StarRegisterValidation {
     }
 
     requestValidation(walletAddress) {
-        const timestamp = Date.now();
-        const dbValue = {
-            address: walletAddress,
-            requestTimeStamp: timestamp,
-            message: `${walletAddress}:${timestamp}:starRegistry`,
-            validationWindow: 300
-        };
+        return db.get(walletAddress)
+            .then(dbValueString => {
+                const dbValue = JSON.parse(dbValueString);
+                const fiveMinutesInThePast = Date.now() - (5 * 60 * 1000);
+                const isExpired = dbValue.requestTimeStamp < fiveMinutesInThePast;
+                if (isExpired) {
+                    throw 'Expired';
+                }
 
-        return db.put(walletAddress, JSON.stringify(dbValue))
-            .then(() => dbValue);
+                dbValue.validationWindow = Math.floor((dbValue.requestTimeStamp - fiveMinutesInThePast) / 1000); // In seconds
+                return dbValue;
+            }).catch(() => {
+                const timestamp = Date.now();
+                const dbValue = {
+                    address: walletAddress,
+                    requestTimeStamp: timestamp,
+                    message: `${walletAddress}:${timestamp}:starRegistry`,
+                    validationWindow: 300
+                };
+
+                return db.put(walletAddress, JSON.stringify(dbValue))
+                    .then(() => dbValue);
+            });
     }
 
     validateSignature(walletAddress, messageSignature) {
